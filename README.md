@@ -70,9 +70,7 @@ L'application est déployée sur Vercel. Pour déployer votre propre version :
 3. Cliquez sur "Import Project"
 4. Suivez les instructions de déploiement
 
-## 📝 License
 
-Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
       
 ## 👥 Contribution
 
