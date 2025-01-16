@@ -8,6 +8,8 @@ import {
   Tag,
   Calendar,
   User,
+  Plus,
+  AlertCircle,
 } from "lucide-react";
 
 const PRIORITIES = {
@@ -20,6 +22,7 @@ const TASK_STATUS = {
   active: { label: "En cours", icon: Circle, color: "text-blue-600" },
   paused: { label: "En pause", icon: PauseCircle, color: "text-orange-500" },
   completed: { label: "Terminée", icon: CheckCircle, color: "text-green-500" },
+  overdue: { label: "En retard", icon: AlertCircle, color: "text-red-500" },
 };
 
 const CATEGORIES = [
@@ -34,11 +37,11 @@ const CATEGORIES = [
   { id: "other", label: "Autre", color: "bg-gray-100 text-gray-700" },
 ];
 
-const ASSIGNEES = [
-  { id: "me", name: "Moi" },
-  { id: "alice", name: "Alice" },
-  { id: "bob", name: "Bob" },
-  { id: "charlie", name: "Charlie" },
+const DEFAULT_ASSIGNEES = [
+  { id: "me", name: "Moi", isDefault: true },
+  { id: "alice", name: "Alice", isDefault: true },
+  { id: "bob", name: "Bob", isDefault: true },
+  { id: "charlie", name: "Charlie", isDefault: true },
 ];
 
 const TaskManager = () => {
@@ -50,9 +53,28 @@ const TaskManager = () => {
   const [assignee, setAssignee] = useState("me");
   const [filter, setFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [assigneeList, setAssigneeList] = useState(DEFAULT_ASSIGNEES);
+
+  const StatusIcon = ({ status }) => {
+    const Icon = TASK_STATUS[status].icon;
+    return <Icon className={`h-4 w-4 ${TASK_STATUS[status].color}`} />;
+  };
+
+  const validateDate = (date) => {
+    if (!date) return true;
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(date);
+    return selectedDate >= now;
+  };
 
   const addTask = () => {
     if (text.trim()) {
+      if (dueDate && !validateDate(dueDate)) {
+        alert("La date limite doit être dans le futur");
+        return;
+      }
+
       setTasks([
         ...tasks,
         {
@@ -63,30 +85,16 @@ const TaskManager = () => {
           category,
           dueDate,
           assignee,
-          createdAt: new Date(),
+          createdAt: new Date().toISOString(),
         },
       ]);
       setText("");
+      setDueDate("");
     }
   };
 
   const deleteTask = (taskId) => {
     setTasks(tasks.filter((task) => task.id !== taskId));
-  };
-
-  const toggleStatus = (taskId) => {
-    setTasks(
-      tasks.map((task) => {
-        if (task.id === taskId) {
-          const statusOrder = ["active", "paused", "completed"];
-          const currentIndex = statusOrder.indexOf(task.status);
-          const nextStatus =
-            statusOrder[(currentIndex + 1) % statusOrder.length];
-          return { ...task, status: nextStatus };
-        }
-        return task;
-      })
-    );
   };
 
   const filteredTasks = tasks.filter((task) => {
@@ -130,50 +138,147 @@ const TaskManager = () => {
             className="w-full p-3 border rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700 placeholder-gray-400"
             onKeyPress={(e) => e.key === "Enter" && addTask()}
           />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <select
-              value={priority}
-              onChange={(e) => setPriority(e.target.value)}
-              className="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
-            >
-              {Object.entries(PRIORITIES).map(([key, { label }]) => (
-                <option key={key} value={key}>
-                  {label}
-                </option>
-              ))}
-            </select>
 
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
-            >
-              {CATEGORIES.map(({ id, label }) => (
-                <option key={id} value={id}>
-                  {label}
-                </option>
-              ))}
-            </select>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Niveau d'urgence
+              </label>
+              <select
+                value={priority}
+                onChange={(e) => setPriority(e.target.value)}
+                className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
+              >
+                {Object.entries(PRIORITIES).map(([key, { label }]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            <select
-              value={assignee}
-              onChange={(e) => setAssignee(e.target.value)}
-              className="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
-            >
-              {ASSIGNEES.map(({ id, name }) => (
-                <option key={id} value={id}>
-                  {name}
-                </option>
-              ))}
-            </select>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Catégorie
+              </label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
+              >
+                {CATEGORIES.map(({ id, label }) => (
+                  <option key={id} value={id}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Assigné à
+              </label>
+              <div className="flex gap-2">
+                <select
+                  value={assignee}
+                  onChange={(e) => {
+                    if (e.target.value === "delete") {
+                      const personToDelete = assigneeList.find(
+                        (a) => a.id === assignee
+                      );
+                      if (
+                        personToDelete &&
+                        personToDelete.id !== "me" && // On empêche la suppression de "Moi"
+                        confirm(
+                          `Voulez-vous vraiment supprimer ${personToDelete.name} ?`
+                        )
+                      ) {
+                        setAssigneeList(
+                          assigneeList.filter((a) => a.id !== assignee)
+                        );
+                        setAssignee("me");
+                      }
+                    } else {
+                      setAssignee(e.target.value);
+                    }
+                  }}
+                  className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
+                >
+                  {assigneeList.map(({ id, name }) => (
+                    <option key={id} value={id}>
+                      {name}
+                    </option>
+                  ))}
+                  {/* Option de suppression pour tous sauf "Moi" */}
+                  {assignee !== "me" && (
+                    <option value="delete" className="text-red-600">
+                      Supprimer{" "}
+                      {assigneeList.find((a) => a.id === assignee)?.name}
+                    </option>
+                  )}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const name = prompt("Nom de la nouvelle personne :");
+                    if (name && name.trim()) {
+                      const newAssignee = {
+                        id: "user_" + Date.now(),
+                        name: name.trim(),
+                        isDefault: false,
+                      };
+                      setAssigneeList([...assigneeList, newAssignee]);
+                      setAssignee(newAssignee.id);
+                    }
+                  }}
+                  className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors"
+                  title="Ajouter une personne"
+                >
+                  <Plus className="h-5 w-5" />
+                </button>
+                {assignee &&
+                  !assigneeList.find((a) => a.id === assignee)?.isDefault && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const personToDelete = assigneeList.find(
+                          (a) => a.id === assignee
+                        );
+                        if (
+                          personToDelete &&
+                          !personToDelete.isDefault &&
+                          confirm(
+                            `Voulez-vous vraiment supprimer ${personToDelete.name} ?`
+                          )
+                        ) {
+                          setAssigneeList(
+                            assigneeList.filter((a) => a.id !== assignee)
+                          );
+                          setAssignee("me");
+                        }
+                      }}
+                      className="p-2 bg-red-200 text-red-700 rounded-lg hover:bg-red-300 transition-colors flex items-center justify-center"
+                      title="Supprimer cette personne"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                  )}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Date butoire
+              </label>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
+              />
+            </div>
           </div>
+
           <button
             onClick={addTask}
             className="w-full sm:w-auto px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
@@ -233,43 +338,67 @@ const TaskManager = () => {
             }`}
           >
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => toggleStatus(task.id)}
-                className="focus:outline-none hover:scale-110 transition-transform"
-              >
-                {(() => {
-                  const StatusIcon = TASK_STATUS[task.status].icon;
-                  return (
-                    <StatusIcon
-                      className={`h-6 w-6 ${TASK_STATUS[task.status].color}`}
-                    />
-                  );
-                })()}
-              </button>
               <div className="flex-1">
-                <span
-                  className={`text-lg ${
-                    task.status === "completed"
-                      ? "line-through text-gray-500"
-                      : "text-gray-700"
-                  }`}
-                >
-                  {task.text}
-                </span>
+                <div className="flex items-center gap-3">
+                  <StatusIcon status={task.status} />
+                  <select
+                    value={task.status}
+                    onChange={(e) => {
+                      setTasks(
+                        tasks.map((t) =>
+                          t.id === task.id
+                            ? { ...t, status: e.target.value }
+                            : t
+                        )
+                      );
+                    }}
+                    className={`px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      task.status === "completed"
+                        ? "text-green-600"
+                        : task.status === "paused"
+                        ? "text-orange-600"
+                        : task.status === "overdue"
+                        ? "text-red-600"
+                        : "text-blue-600"
+                    }`}
+                  >
+                    {Object.entries(TASK_STATUS).map(([status, { label }]) => (
+                      <option key={status} value={status}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                  <span
+                    className={`text-lg ${
+                      task.status === "completed"
+                        ? "line-through text-gray-500"
+                        : "text-gray-700"
+                    }`}
+                  >
+                    {task.text}
+                  </span>
+                </div>
                 <div className="flex flex-wrap gap-2 mt-2">
                   <span
                     className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${
-                      CATEGORIES.find((c) => c.id === task.category)?.color
+                      PRIORITIES[task.priority].color
                     }`}
                   >
                     <Tag className="h-3 w-3 mr-1" />
-                    {CATEGORIES.find((c) => c.id === task.category)?.label}
+                    {PRIORITIES[task.priority].label}
+                  </span>
+                  <span
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${
+                      CATEGORIES.find((c) => c.id === task.category).color
+                    }`}
+                  >
+                    <Tag className="h-3 w-3 mr-1" />
+                    {CATEGORIES.find((c) => c.id === task.category).label}
                   </span>
                   {task.dueDate && (
                     <span
                       className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${
-                        new Date(task.dueDate) < new Date() &&
-                        task.status !== "completed"
+                        new Date(task.dueDate) < new Date()
                           ? "bg-red-100 text-red-700"
                           : "bg-gray-100 text-gray-700"
                       }`}
@@ -280,7 +409,8 @@ const TaskManager = () => {
                   )}
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-700">
                     <User className="h-3 w-3 mr-1" />
-                    {ASSIGNEES.find((a) => a.id === task.assignee)?.name}
+                    {assigneeList.find((a) => a.id === task.assignee)?.name ||
+                      "Non assigné"}
                   </span>
                 </div>
               </div>
@@ -293,9 +423,11 @@ const TaskManager = () => {
             </div>
           </div>
         ))}
-        {tasks.length === 0 && (
+        {filteredTasks.length === 0 && (
           <div className="text-center py-8 text-gray-600">
-            Aucune tâche pour le moment. Ajoutez-en une !
+            {searchTerm
+              ? "Aucune tâche ne correspond à votre recherche."
+              : "Aucune tâche pour le moment. Ajoutez-en une !"}
           </div>
         )}
       </div>
